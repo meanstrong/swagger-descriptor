@@ -5,11 +5,11 @@ from typing import Dict, List
 from .json_schema import JsonSchema
 
 
-class Swagger(object):
+class Swagger(dict):
     def __init__(self, swagger: Dict):
-        self._swagger = swagger
+        super().__init__(swagger)
         self._definitions = swagger.get("definitions", {})
-        self._apis: List[APIDescripor] = []
+        self._apis: List[APIDescriptor] = []
         for url, url_info in swagger.get("paths", {}).items():
             for method, method_info in url_info.items():
                 self._apis.append(self._parse_api(method, url, method_info))
@@ -29,10 +29,10 @@ class Swagger(object):
         return JsonSchema(map)
 
     def _parse_api(self, method: str, url: str, descriptor: Dict):
-        return APIDescripor(method, url, descriptor)
+        return APIDescriptor(method, url, descriptor)
 
 
-class APIDescripor(object):
+class APIDescriptor(object):
     def __init__(self, method, url, descriptor):
         self.__method = method
         self.__url = url
@@ -44,16 +44,18 @@ class APIDescripor(object):
         self.__query_params: List[JsonSchema] = []
         self.__header_params: List[JsonSchema] = []
         self.__body_param: JsonSchema = None
-        self.__response: JsonSchema = JsonSchema(descriptor["responses"]["200"])
+        if "requestBody" in descriptor:
+            self.__body_param = JsonSchema.parse(descriptor["requestBody"]["content"]["application/json"]["schema"])
+        self.__response: Dict = descriptor["responses"]["200"]
         for param in descriptor.get("parameters", []):
             if param["in"] == "path":
-                self.__path_params.append(JsonSchema(param))
+                self.__path_params.append(JsonSchema.parse(param))
             elif param["in"] == "query":
-                self.query_params.append(JsonSchema(param))
+                self.query_params.append(JsonSchema.parse(param))
             elif param["in"] == "header":
-                self.__header_params.append(JsonSchema(param))
+                self.__header_params.append(JsonSchema.parse(param))
             elif param["in"] == "body":
-                self.__body_param = JsonSchema(param)
+                self.__body_param = JsonSchema.parse(param["schema"])
             else:
                 raise Exception("Unkown param by: {}".format(param))
 
