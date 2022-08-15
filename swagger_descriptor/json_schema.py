@@ -12,13 +12,13 @@ class JsonSchema(dict):
     def parse(json: Dict) -> JsonSchema:
         if json is None:
             return None
-        if json.get("$ref"):
+        if "$ref" in json:
             return ReferenceSchema(json)
-        if json.get("allOf"):
+        if "allOf" in json:
             return CombineAllofSchema(json)
-        if json.get("anyOf"):
+        if "anyOf" in json:
             return CombineAnyofSchema(json)
-        if json.get("oneOf"):
+        if "oneOf" in json:
             return CombineOneofSchema(json)
         if json.get("type") == "string":
             return StringSchema(json)
@@ -74,7 +74,8 @@ class ReferenceSchema(JsonSchema):
         return JsonSchema.parse(map)
 
     def get_py_type_name(self):
-        return self.value.split("/")[-1]
+        if self.get("$ref"):
+            return self.value.split("/")[-1]
 
 
 class StringSchema(JsonSchema):
