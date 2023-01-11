@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding=utf-8 -*-
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .json_schema import JsonSchema
 
@@ -34,30 +34,16 @@ class Swagger(dict):
 
 class APIDescriptor(object):
     def __init__(self, method, url, descriptor):
-        self.__method = method
-        self.__url = url
-        self.__summary = descriptor.get("summary", "")
-        self.__operation_id = descriptor.get("operationId", "")
-        self.__tags = descriptor.get("tags", [])
-        self.__description = descriptor.get("description", "")
-        self.__path_params: List[JsonSchema] = []
-        self.__query_params: List[JsonSchema] = []
-        self.__header_params: List[JsonSchema] = []
-        self.__body_param: JsonSchema = None
-        if "requestBody" in descriptor:
-            self.__body_param = JsonSchema.parse(descriptor["requestBody"]["content"]["application/json"]["schema"])
+        self.__method: str = method
+        self.__url: str = url
+        self.__summary: str = descriptor.get("summary", "")
+        self.__operation_id: str = descriptor.get("operationId", "")
+        self.__tags: List[str] = descriptor.get("tags", [])
+        self.__description: str = descriptor.get("description", "")
+        self.__parameters: List[ParameterDescriptor] = []
         self.__response: Dict = descriptor["responses"]["200"]
         for param in descriptor.get("parameters", []):
-            if param["in"] == "path":
-                self.__path_params.append(JsonSchema.parse(param))
-            elif param["in"] == "query":
-                self.query_params.append(JsonSchema.parse(param))
-            elif param["in"] == "header":
-                self.__header_params.append(JsonSchema.parse(param))
-            elif param["in"] == "body":
-                self.__body_param = JsonSchema.parse(param["schema"])
-            else:
-                raise Exception("Unkown param by: {}".format(param))
+            self.__parameters.append(ParameterDescriptor(param))
 
     @property
     def method(self):
@@ -84,21 +70,28 @@ class APIDescriptor(object):
         return self.__description
 
     @property
-    def path_params(self):
-        return self.__path_params
-
-    @property
-    def query_params(self):
-        return self.__query_params
-
-    @property
-    def header_params(self):
-        return self.header_params
-
-    @property
-    def body_param(self):
-        return self.__body_param
+    def parameters(self):
+        return self.__parameters
 
     @property
     def response(self):
         return self.__response
+
+
+class ParameterDescriptor(dict):
+
+    @property
+    def name(self) -> str:
+        return self.get("name")
+
+    @property
+    def _in(self) -> str:
+        return self.get("in")
+
+    @property
+    def description(self) -> Optional[str]:
+        return self.get("description")
+
+    @property
+    def schema(self):
+        return self.get("schema")

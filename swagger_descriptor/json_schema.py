@@ -32,6 +32,8 @@ class JsonSchema(dict):
             return ArraySchema(json)
         elif json.get("type") == "object":
             return ObjectSchema(json)
+        elif json.get("type") == "file":
+            return ObjectSchema(json)
         else:
             return JsonSchema(json)
 
@@ -117,6 +119,12 @@ class ArraySchema(JsonSchema):
 
     def get_py_type_name(self):
         return "List[{}]".format(self.items.get_py_type_name())
+
+
+class FileSchema(JsonSchema):
+
+    def get_py_type_name(self):
+        return "bytes"
 
 
 class ObjectSchema(JsonSchema):
